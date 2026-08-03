@@ -59,10 +59,6 @@ vi.mock('@/app/components/plugins/plugin-detail-panel/detail-header/hooks', () =
   }),
 }))
 
-vi.mock('@/service/use-plugins', () => ({
-  useVersionListOfPlugin: () => ({ data: { data: { versions: [] } } }),
-}))
-
 vi.mock('@/app/components/plugins/plugin-detail-panel/detail-header/components', () => ({
   HeaderModals: ({
     targetVersion,
@@ -103,6 +99,7 @@ vi.mock('@/service/plugins', () => ({
 
 vi.mock('@/service/use-plugins', () => ({
   normalizeInstalledPluginDetail: mockNormalizeInstalledPluginDetail,
+  useVersionListOfPlugin: () => ({ data: { data: { versions: [] } } }),
 }))
 
 const createDetail = (overrides: Partial<PluginDetail> = {}): PluginDetail =>
