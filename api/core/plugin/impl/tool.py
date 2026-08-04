@@ -1,7 +1,7 @@
 from collections.abc import Generator
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, OnErrorOmit
 
 from configs import dify_config
 
@@ -35,7 +35,8 @@ class PluginToolManager(BasePluginClient):
         response = self._request_with_plugin_daemon_response(
             "GET",
             f"plugin/{tenant_id}/management/tools",
-            list[PluginToolProviderEntity],
+            # A malformed declaration should not invalidate the entire provider list.
+            list[OnErrorOmit[PluginToolProviderEntity]],
             params={"page": 1, "page_size": 256},
             transformer=transformer,
         )
