@@ -7,7 +7,7 @@ from flask_restx import Resource
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from werkzeug.exceptions import NotFound, Unauthorized
+from werkzeug.exceptions import NotFound
 
 import services
 from configs import dify_config
@@ -28,6 +28,7 @@ from controllers.common.session import with_session
 from controllers.console import console_ns
 from controllers.console.admin import admin_required
 from controllers.console.error import AccountNotLinkTenantError
+from controllers.console.workspace.error import CurrentWorkspaceArchivedError
 from controllers.console.wraps import (
     account_initialization_required,
     cloud_edition_billing_resource_check,
@@ -105,6 +106,14 @@ class TenantInfoResponse(ResponseModel):
     @classmethod
     def _normalize_created_at(cls, value: datetime | int | None):
         return to_timestamp(value)
+
+
+class CurrentWorkspaceSummaryResponse(ResponseModel):
+    id: str
+    name: str
+    role: str
+    plan: str | None
+    credits: int | None = Field(description="Remaining credits in the effective pool; -1 means unlimited.")
 
 
 class TenantListItemResponse(ResponseModel):
@@ -203,6 +212,7 @@ register_schema_models(
 )
 register_response_schema_models(
     console_ns,
+    CurrentWorkspaceSummaryResponse,
     TenantInfoResponse,
     TenantListItemResponse,
     TenantListResponse,
@@ -295,35 +305,31 @@ class WorkspaceListApi(Resource):
         ).model_dump(mode="json"), HTTPStatus.OK
 
 
-@console_ns.route("/workspaces/current", endpoint="workspaces_current")
-@console_ns.route("/info", endpoint="info")  # Deprecated
-class TenantApi(Resource):
+@console_ns.route("/workspaces/current/summary")
+class CurrentWorkspaceSummaryApi(Resource):
+    @console_ns.response(
+        HTTPStatus.OK,
+        "Success",
+        console_ns.models[CurrentWorkspaceSummaryResponse.__name__],
+    )
+    @console_ns.response(HTTPStatus.CONFLICT, "Current workspace is archived")
     @setup_required
     @login_required
     @account_initialization_required
-    @console_ns.response(HTTPStatus.OK, "Success", console_ns.models[TenantInfoResponse.__name__])
     @with_current_user
-    @with_session
-    def post(self, session: Session, current_user: Account):
-        if request.path == "/info":
-            logger.warning("Deprecated URL /info was used.")
-
+    @with_session(write=False)
+    def get(self, session: Session, current_user: Account):
         tenant = current_user.current_tenant
         if not tenant:
             raise ValueError("No current tenant")
-
         if tenant.status == TenantStatus.ARCHIVE:
-            tenants = TenantService.get_join_tenants(current_user, session=session)
-            # if there is any tenant, switch to the first one
-            if len(tenants) > 0:
-                TenantService.switch_tenant(current_user, tenants[0].id, session=session)
-                tenant = tenants[0]
-            # else, raise Unauthorized
-            else:
-                raise Unauthorized("workspace is archived")
+            raise CurrentWorkspaceArchivedError()
 
         return (
-            dump_response(TenantInfoResponse, WorkspaceService.get_tenant_info(tenant, session=session)),
+            dump_response(
+                CurrentWorkspaceSummaryResponse,
+                WorkspaceService.get_current_workspace_summary(tenant, current_user.id, session=session),
+            ),
             HTTPStatus.OK,
         )
 
@@ -358,6 +364,31 @@ class SwitchWorkspaceApi(Resource):
 
 @console_ns.route("/workspaces/custom-config")
 class CustomConfigWorkspaceApi(Resource):
+    @console_ns.response(HTTPStatus.OK, "Success", console_ns.models[WorkspaceCustomConfigResponse.__name__])
+    @setup_required
+    @login_required
+    @account_initialization_required
+    @with_current_tenant_id
+    @with_session(write=False)
+    def get(self, session: Session, current_tenant_id: str):
+        tenant = TenantService.get_tenant_by_id(current_tenant_id, session=session)
+        if tenant is None:
+            raise NotFound()
+
+        custom_config = tenant.custom_config_dict
+        replace_webapp_logo = (
+            f"{dify_config.FILES_URL}/files/workspaces/{tenant.id}/webapp-logo"
+            if custom_config.get("replace_webapp_logo")
+            else None
+        )
+        return dump_response(
+            WorkspaceCustomConfigResponse,
+            {
+                "remove_webapp_brand": custom_config.get("remove_webapp_brand", False),
+                "replace_webapp_logo": replace_webapp_logo,
+            },
+        )
+
     @console_ns.expect(console_ns.models[WorkspaceCustomConfigPayload.__name__])
     @console_ns.response(HTTPStatus.OK, "Success", console_ns.models[WorkspaceTenantResultResponse.__name__])
     @setup_required

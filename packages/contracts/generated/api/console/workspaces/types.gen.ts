@@ -8,22 +8,6 @@ export type TenantListResponse = {
   workspaces: Array<TenantListItemResponse>
 }
 
-export type TenantInfoResponse = {
-  created_at?: number | null
-  custom_config?: WorkspaceCustomConfigResponse | null
-  id: string
-  in_trial?: boolean | null
-  name?: string | null
-  next_credit_reset_date?: number | null
-  plan?: string | null
-  role?: string | null
-  status?: string | null
-  trial_credits?: number | null
-  trial_credits_exhausted_at?: number | null
-  trial_credits_used?: number | null
-  trial_end_reason?: string | null
-}
-
 export type AgentProviderResponse = {
   [key: string]: unknown
 }
@@ -225,6 +209,17 @@ export type MemberRoleUpdatePayload = {
 
 export type ModelProviderListResponse = {
   data: Array<ProviderResponse>
+}
+
+export type ModelProviderCreditsResponse = {
+  exhausted_at: number | null
+  is_exhausted: boolean
+  is_unlimited: boolean
+  next_credit_reset_date: number | null
+  pool_type: 'paid' | 'trial' | null
+  quota_limit: number | null
+  quota_used: number | null
+  remaining_credits: number | null
 }
 
 export type ModelProviderSummaryListResponse = {
@@ -647,6 +642,14 @@ export type WorkspaceAccessMatrix = {
   pagination?: Pagination | null
 }
 
+export type CurrentWorkspaceSummaryResponse = {
+  credits: number | null
+  id: string
+  name: string
+  plan: string | null
+  role: string
+}
+
 export type ToolLabelListResponse = Array<ToolLabel>
 
 export type ApiToolProviderAddPayload = {
@@ -1012,6 +1015,11 @@ export type TriggerOAuthAuthorizeResponse = {
 
 export type TriggerProviderListResponse = Array<TriggerProviderApiEntity>
 
+export type WorkspaceCustomConfigResponse = {
+  remove_webapp_brand?: boolean | null
+  replace_webapp_logo?: string | null
+}
+
 export type WorkspaceCustomConfigPayload = {
   remove_webapp_brand?: boolean | null
   replace_webapp_logo?: string | null
@@ -1047,11 +1055,6 @@ export type TenantListItemResponse = {
   name?: string | null
   plan?: string | null
   status?: string | null
-}
-
-export type WorkspaceCustomConfigResponse = {
-  remove_webapp_brand?: boolean | null
-  replace_webapp_logo?: string | null
 }
 
 export type SnippetListItemResponse = {
@@ -1695,6 +1698,22 @@ export type TriggerProviderSubscriptionApiEntity = {
   }
   provider: string
   workflows_in_use: number
+}
+
+export type TenantInfoResponse = {
+  created_at?: number | null
+  custom_config?: WorkspaceCustomConfigResponse | null
+  id: string
+  in_trial?: boolean | null
+  name?: string | null
+  next_credit_reset_date?: number | null
+  plan?: string | null
+  role?: string | null
+  status?: string | null
+  trial_credits?: number | null
+  trial_credits_exhausted_at?: number | null
+  trial_credits_used?: number | null
+  trial_end_reason?: string | null
 }
 
 export type PluginDependencyType = 'github' | 'marketplace' | 'package'
@@ -2478,20 +2497,6 @@ export type GetWorkspacesResponses = {
 
 export type GetWorkspacesResponse = GetWorkspacesResponses[keyof GetWorkspacesResponses]
 
-export type PostWorkspacesCurrentData = {
-  body?: never
-  path?: never
-  query?: never
-  url: '/workspaces/current'
-}
-
-export type PostWorkspacesCurrentResponses = {
-  200: TenantInfoResponse
-}
-
-export type PostWorkspacesCurrentResponse =
-  PostWorkspacesCurrentResponses[keyof PostWorkspacesCurrentResponses]
-
 export type GetWorkspacesCurrentAgentProviderByProviderNameData = {
   body?: never
   path: {
@@ -3076,6 +3081,20 @@ export type GetWorkspacesCurrentModelProvidersResponses = {
 
 export type GetWorkspacesCurrentModelProvidersResponse =
   GetWorkspacesCurrentModelProvidersResponses[keyof GetWorkspacesCurrentModelProvidersResponses]
+
+export type GetWorkspacesCurrentModelProvidersCreditsData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/workspaces/current/model-providers/credits'
+}
+
+export type GetWorkspacesCurrentModelProvidersCreditsResponses = {
+  200: ModelProviderCreditsResponse
+}
+
+export type GetWorkspacesCurrentModelProvidersCreditsResponse =
+  GetWorkspacesCurrentModelProvidersCreditsResponses[keyof GetWorkspacesCurrentModelProvidersCreditsResponses]
 
 export type GetWorkspacesCurrentModelProvidersSummaryData = {
   body?: never
@@ -4707,6 +4726,24 @@ export type GetWorkspacesCurrentRbacWorkspaceDatasetsAccessPolicyResponses = {
 export type GetWorkspacesCurrentRbacWorkspaceDatasetsAccessPolicyResponse =
   GetWorkspacesCurrentRbacWorkspaceDatasetsAccessPolicyResponses[keyof GetWorkspacesCurrentRbacWorkspaceDatasetsAccessPolicyResponses]
 
+export type GetWorkspacesCurrentSummaryData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/workspaces/current/summary'
+}
+
+export type GetWorkspacesCurrentSummaryErrors = {
+  409: unknown
+}
+
+export type GetWorkspacesCurrentSummaryResponses = {
+  200: CurrentWorkspaceSummaryResponse
+}
+
+export type GetWorkspacesCurrentSummaryResponse =
+  GetWorkspacesCurrentSummaryResponses[keyof GetWorkspacesCurrentSummaryResponses]
+
 export type GetWorkspacesCurrentToolLabelsData = {
   body?: never
   path?: never
@@ -5605,6 +5642,20 @@ export type GetWorkspacesCurrentTriggersResponses = {
 
 export type GetWorkspacesCurrentTriggersResponse =
   GetWorkspacesCurrentTriggersResponses[keyof GetWorkspacesCurrentTriggersResponses]
+
+export type GetWorkspacesCustomConfigData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/workspaces/custom-config'
+}
+
+export type GetWorkspacesCustomConfigResponses = {
+  200: WorkspaceCustomConfigResponse
+}
+
+export type GetWorkspacesCustomConfigResponse =
+  GetWorkspacesCustomConfigResponses[keyof GetWorkspacesCustomConfigResponses]
 
 export type PostWorkspacesCustomConfigData = {
   body: WorkspaceCustomConfigPayload
